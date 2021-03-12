@@ -121,21 +121,21 @@ well3_hr_RTD <- read_csv("Water_table_WS3upper_WS_3Up_snowdat_hr.dat",
 #so there is more continuity with the data, 
 #if not the heat map would be mostly empty
 
-well3_15_RTD1 <- well3_15_RTD %>%
-  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01"))
+#well3_15_RTD1 <- well3_15_RTD %>%
+#  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01"))
 
-well3_hr_RTD1 <- well3_hr_RTD %>%
-  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01"))
+#well3_hr_RTD1 <- well3_hr_RTD %>%
+#  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01"))
 
-well9_15_RTD1 <- well9_15_RTD %>%
-  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01")) 
+#well9_15_RTD1 <- well9_15_RTD %>%
+#  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01")) 
 
-well9_hr_RTD1 <- well9_hr_RTD %>%
-  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01"))
+#well9_hr_RTD1 <- well9_hr_RTD %>%
+#  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01"))
 
 
-RTD_15 <- bind_rows(well3_15_RTD1, well9_15_RTD1, .id = "well")
-RTD_hr <- bind_rows(well3_hr_RTD1, well9_hr_RTD1, .id = "well")
+RTD_15 <- bind_rows(well3_15_RTD, well9_15_RTD, .id = "well")
+RTD_hr <- bind_rows(well3_hr_RTD, well9_hr_RTD, .id = "well")
 
 ui <- fluidPage(
   tabsetPanel(
@@ -181,6 +181,8 @@ ui <- fluidPage(
   tabPanel("Depth of Sensor Heat Map",
            sidebarLayout(
              sidebarPanel(
+              dateInput("startdate2", label = "Start Date", val= "2020-12-14"), 
+              dateInput("enddate2", label= "End Date", value=Sys.Date(), max=Sys.Date()),
               selectInput("var4", "Which well depth of sensor heat map would you like to see (15min interval)? (Well 3(1) / Well 9(2))",
                           choices = unique(RTD_15$well), selected = unique(RTD_15$well[1]), multiple = FALSE),
               selectInput("var5", "Which well depth of sensor heat map would you like to see (hr interval)? (Well 3(1) / Well 9(2))",
@@ -246,11 +248,12 @@ server <- function(input, output, sessions) {
       scale_color_gradientn(colours = rainbow(5)) +
       labs(title = "Bivariate Analysis of Well Data",
            x = unique(toPlot$name.x),
-           y = unique(toPlot$name.y))
+           y = unique(toPlot$name.y)) +
+      theme_bw()
   })
 
   output$var4 <- renderPlot({
-    RTD_15 %>% filter(well == input$var4) %>% 
+    RTD_15 %>% filter(well == input$var4 & TIMESTAMP > input$startdate2 & TIMESTAMP < input$enddate2) %>% 
       ggplot(aes(x = TIMESTAMP, y = name, fill = value)) +
       geom_tile() +  
       scale_fill_gradient(low = "#1fddff",
@@ -260,12 +263,16 @@ server <- function(input, output, sessions) {
                           guide = "colourbar",
                           aesthetics = "fill") +
     labs(x = "Date",
-         y = "Depth of Sensor", 
-         title = "RTD Sensor Heat map")
+         y = "Depth of Sensor (cm)", 
+         title = "RTD Sensor Heat map") +
+      scale_y_discrete(labels = c(("RTD1" = "0"), ("RTD2" = "5"), ("RTD3" = "10"), 
+                                  ("RTD4" = "15"), ("RTD5" = "20"), ("RTD6" = "25"), 
+                                  ("RTD7" = "30"), ("RTD8" = "35"), ("RTD9" = "40")))+
+      theme_bw()
   })
   
   output$var5 <- renderPlot({
-    RTD_hr %>% filter(well == input$var5) %>% 
+    RTD_hr %>% filter(well == input$var5 & TIMESTAMP > input$startdate2 & TIMESTAMP < input$enddate2) %>% 
       ggplot(aes(x = TIMESTAMP, y = name, fill = value)) +
       geom_tile() +  
       scale_fill_gradient(low = "#1fddff",
@@ -274,8 +281,11 @@ server <- function(input, output, sessions) {
                           na.value = "grey50",
                           guide = "colourbar",
                           aesthetics = "fill") +
+      scale_y_discrete(labels = c(("RTD1" = "0"), ("RTD2" = "5"), ("RTD3" = "10"), 
+                                  ("RTD4" = "15"), ("RTD5" = "20"), ("RTD6" = "25"), 
+                                  ("RTD7" = "30"), ("RTD8" = "35"), ("RTD9" = "40")))+
       labs(x = "Date",
-           y = "Depth of Sensor", 
+           y = "Depth of Sensor(cm)", 
            title = "RTD Sensor Heat map")
   })
 }
