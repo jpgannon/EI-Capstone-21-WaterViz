@@ -117,22 +117,37 @@ well3_hr_RTD <- read_csv("Water_table_WS3upper_WS_3Up_snowdat_hr.dat",
   pivot_longer(cols = c(RTD_Avg1 , RTD_Avg2 , RTD_Avg3 , RTD_Avg4 , RTD_Avg5 ,
                         RTD_Avg6 , RTD_Avg7 , RTD_Avg8 , RTD_Avg9))
 
+discharge_3 <- read_csv("weir3_Ws_3b.dat",
+                        skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt",
+                                                X4= "Ptemp", X5= "WLOptical_median", X6= "Optical_WL_max",
+                                                X7="Optical_WL_min", X8= "flow_equation", x9 = "Q",
+                                                x10 = "Specific_Discharge", x11 = "Streamtemp")) %>% 
+  select(TIMESTAMP, Specific_Discharge) %>% 
+  pivot_longer(cols = c(Specific_Discharge))
+
+
+discharge_9 <- read_csv("weir9_Ws_9b.dat",
+                        skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt",
+                                                X4= "Ptemp", X5= "WLOptical_median", X6= "Optical_WL_max",
+                                                X7="Optical_WL_min", X8= "flow_equation", x9 = "Q",
+                                                x10 = "Specific_Discharge", x11 = "Streamtemp")) %>% 
+  select(TIMESTAMP, Specific_Discharge) %>% 
+  pivot_longer(cols = c(Specific_Discharge))
+
+discharge_data <- bind_rows(discharge_3, discharge_9, .id = "watershed")
+
+precip <- read_csv("wxsta1_Wx_1_rain.dat",
+                   skip = 4, col_names = c(x1 = "TIMESTAMP", x2 = "RECORD", x3 = "GageMinV",
+                                           x4 = "ActTemp", x5 = "ActDepth", x6 = "ReportPCP", 
+                                           x7 = "ODPCounts", x8 = "blockedSec", x9 = "Scan10",
+                                           x10 = "ActDepthRA")) %>% 
+  select(TIMESTAMP, ReportPCP) %>% 
+  pivot_longer(cols = c(ReportPCP))
+
+
 #filtering dates from the DoS data we just selected 
 #so there is more continuity with the data, 
 #if not the heat map would be mostly empty
-
-#well3_15_RTD1 <- well3_15_RTD %>%
-#  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01"))
-
-#well3_hr_RTD1 <- well3_hr_RTD %>%
-#  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01"))
-
-#well9_15_RTD1 <- well9_15_RTD %>%
-#  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01")) 
-
-#well9_hr_RTD1 <- well9_hr_RTD %>%
-#  filter(TIMESTAMP >= as.POSIXct("2020-12-11") & TIMESTAMP <= as.POSIXct("2021-01-01"))
-
 
 RTD_15 <- bind_rows(well3_15_RTD, well9_15_RTD, .id = "well")
 RTD_hr <- bind_rows(well3_hr_RTD, well9_hr_RTD, .id = "well")
@@ -153,15 +168,20 @@ ui <- fluidPage(
               dateInput("enddate", label= "End Date", value=Sys.Date(), max=Sys.Date()),
               selectInput("var1", "What well would you like to plot over time?", 
                           choices = unique(well_data$name), selected = unique(well_data$name)[1], multiple = TRUE),
-              
+              checkboxInput("checkbox1", "Show plot?", TRUE),
               selectInput("var2", "What snow data (15m) would you like to plot over time?", 
                           choices = unique(snowdat_15m$name), selected = unique(snowdat_15m$name)[1], multiple = TRUE),
               selectInput("var3", "What snow data (hr) would you like to plot over time?", 
                           choices = unique(snowdat_hr$name), selected = unique(snowdat_hr$name)[1], multiple = TRUE),
+              selectInput("var_dis", "What discharge data would you like to plot over time?",
+                          choices = unique(discharge_data$name), selected=unique(discharge_data$name)[1], multiple = FALSE),
+              checkboxInput("checkboxTogDis", "Toggle Watersheds (Off: 3, On: 9)", FALSE),
+
             ),
             mainPanel(plotOutput("var1"), 
                       plotOutput("var2"),
-                      plotOutput("var3"))
+                      plotOutput("var3"),
+                      plotOutput("var_dis"))
           )
  ),
     ###Creates tab and tab settings for Watershed 3
@@ -197,6 +217,7 @@ ui <- fluidPage(
 server <- function(input, output, sessions) {
   
   output$var1 <- renderPlot({
+    if(input$checkbox1 == TRUE)
     well_data %>%  filter(name %in% input$var1 & TIMESTAMP > input$startdate & TIMESTAMP < input$enddate) %>% 
       ggplot(aes(x = TIMESTAMP, y = value, color = name)) +
       geom_line() +
@@ -205,7 +226,6 @@ server <- function(input, output, sessions) {
            y = "Depth (cm)",
            fill = "Wells") +
       theme_bw()
-    
   })
   
   output$var2 <- renderPlot({
@@ -230,6 +250,24 @@ server <- function(input, output, sessions) {
     
   })
   
+  output$var_dis <- renderPlot({
+    if(input$checkboxTogDis == FALSE)
+    discharge_3 %>%  filter(name == input$var_dis & TIMESTAMP > input$startdate & TIMESTAMP < input$enddate) %>% 
+      ggplot(aes(x = TIMESTAMP, y = value, color = "blue")) +
+      geom_line() +
+      labs(title = "Timeseries Analysis of Discharge data",
+           x = "Time", 
+           y = "mm/Hr") +
+      theme_bw()
+    else
+      discharge_9 %>%  filter(name == input$var_dis & TIMESTAMP > input$startdate & TIMESTAMP < input$enddate) %>% 
+      ggplot(aes(x = TIMESTAMP, y = value, color = "red")) +
+      geom_line() +
+      labs(title = "Timeseries Analysis of Discharge data",
+           x = "Time", 
+           y = "mm/Hr)") +
+      theme_bw()
+  })
   
   
   output$var_x <- renderPlot({
