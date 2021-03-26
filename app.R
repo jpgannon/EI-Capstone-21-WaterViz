@@ -3,9 +3,14 @@ library(tidyverse)
 library(lubridate)
 library(ggplot2)
 library(dplyr)
+library(shinythemes)
+library(googledrive)
 
-
+setwd("~/EI Capstone")
 #Reading in Datasets
+
+install.packages('rsconnect')
+
 well9 <- read_csv("Water_table_WS9_WS_9_wells.dat",
                   skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt", 
                                           X4= "ptemp_Max" , X5= "HB156_psi", X6= "HB156_rawdepth", 
@@ -152,11 +157,11 @@ precip <- read_csv("wxsta1_Wx_1_rain.dat",
 RTD_15 <- bind_rows(well3_15_RTD, well9_15_RTD, .id = "well")
 RTD_hr <- bind_rows(well3_hr_RTD, well9_hr_RTD, .id = "well")
 
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("slate"),
   tabsetPanel(
     tabPanel("Home Page",
              sidebarLayout(
-              sidebarPanel(
+              sidebarPanel(width = 1
              ),
              mainPanel()),
              #Creates App home page tab
@@ -165,23 +170,41 @@ ui <- fluidPage(
           sidebarLayout(
             sidebarPanel(
               dateInput("startdate", label = "Start Date", val= "2020-12-14"), 
-              dateInput("enddate", label= "End Date", value=Sys.Date(), max=Sys.Date()),
+              dateInput("enddate", label= "End Date", value= "2021-03-26"),
               selectInput("var1", "What well would you like to plot over time?", 
                           choices = unique(well_data$name), selected = unique(well_data$name)[1], multiple = TRUE),
               checkboxInput("checkbox1", "Show plot?", TRUE),
               selectInput("var2", "What snow data (15m) would you like to plot over time?", 
                           choices = unique(snowdat_15m$name), selected = unique(snowdat_15m$name)[1], multiple = TRUE),
+              checkboxInput("checkbox2", "Show plot?", TRUE),
               selectInput("var3", "What snow data (hr) would you like to plot over time?", 
                           choices = unique(snowdat_hr$name), selected = unique(snowdat_hr$name)[1], multiple = TRUE),
+              checkboxInput("checkbox3", "Show plot?", TRUE),
               selectInput("var_dis", "What discharge data would you like to plot over time?",
                           choices = unique(discharge_data$name), selected=unique(discharge_data$name)[1], multiple = FALSE),
               checkboxInput("checkboxTogDis", "Toggle Watersheds (Off: 3, On: 9)", FALSE),
-
+              checkboxInput("checkbox4", "Show plot?", TRUE),
+              actionButton("dataDL", "Download most recent data"),
             ),
-            mainPanel(plotOutput("var1"), 
-                      plotOutput("var2"),
-                      plotOutput("var3"),
-                      plotOutput("var_dis"))
+            mainPanel(conditionalPanel(condition = "input.checkbox1 == 1",plotOutput("var1", width="100%", height = "215px",
+                                                                                     dblclick = "plot1_dblclick",
+                                                                                     brush = brushOpts(
+                                                                                       id = "plot1_brush",
+                                                                                       resetOnNew = TRUE
+                                                                                     ))), 
+                      conditionalPanel(condition = "input.checkbox2 == 1",plotOutput("var2", width="100%", height = "300px",
+                                                                                     dblclick = "plot2_dblclick",
+                                                                                     brush = brushOpts(
+                                                                                       id = "plot2_brush",
+                                                                                       resetOnNew = TRUE
+                                                                                     ))),
+                      conditionalPanel(condition = "input.checkbox3 == 1",plotOutput("var3", width="100%", height = "215px",
+                                                                                     dblclick = "plot3_dblclick",
+                                                                                     brush = brushOpts(
+                                                                                       id = "plot3_brush",
+                                                                                       resetOnNew = TRUE))),
+                      conditionalPanel(condition = "input.checkbox4 == 1",plotOutput("var_dis", width="100%", height = "215px", 
+                                                                                     )))
           )
  ),
     ###Creates tab and tab settings for Watershed 3
@@ -192,13 +215,16 @@ ui <- fluidPage(
                         choices = unique(well_data$name), selected = unique(well_data$name)[1], multiple = FALSE),
             selectInput("var_y", "What variable would you like to plot on the y axis?", 
                         choices = unique(well_data$name), selected = unique(well_data$name)[2], multiple = FALSE),
+            selectInput("var_dis2", "What discharge data would you like to plot over time?",
+                        choices = unique(discharge_data$name), selected=unique(discharge_data$name)[1], multiple = FALSE),
           ),
-          mainPanel(plotOutput("var_x"))
+          mainPanel(plotOutput("var_x"), 
+                    plotOutput("var_dis2"))
         )
              
     ),
 
-  tabPanel("Depth of Sensor Heat Map",
+  tabPanel("Depth of Snow Heat Map", 
            sidebarLayout(
              sidebarPanel(
               dateInput("startdate2", label = "Start Date", val= "2020-12-14"), 
@@ -216,9 +242,10 @@ ui <- fluidPage(
 
 server <- function(input, output, sessions) {
   
+  filterdate <- reactiveValues(x = ymd(c("2020-12-14", "2021-03-26")))
+  
   output$var1 <- renderPlot({
-    if(input$checkbox1 == TRUE)
-    well_data %>%  filter(name %in% input$var1 & TIMESTAMP > input$startdate & TIMESTAMP < input$enddate) %>% 
+    well_data %>%  filter(name %in% input$var1 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
       ggplot(aes(x = TIMESTAMP, y = value, color = name)) +
       geom_line() +
       labs(title = "Timeseries Analysis of Well Data",
@@ -226,10 +253,11 @@ server <- function(input, output, sessions) {
            y = "Depth (cm)",
            fill = "Wells") +
       theme_bw()
+      
   })
   
   output$var2 <- renderPlot({
-    snowdat_15m %>%  filter(name %in% input$var2 & TIMESTAMP > input$startdate & TIMESTAMP < input$enddate) %>% 
+    snowdat_15m %>%  filter(name %in% input$var2 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
       ggplot(aes(x = TIMESTAMP, y = value, color = name)) +
       geom_line() +
       labs(title = "Timeseries Analysis of Snow Data (15m)",
@@ -240,7 +268,7 @@ server <- function(input, output, sessions) {
   })
   
   output$var3 <- renderPlot({
-    snowdat_hr %>%  filter(name %in% input$var3 & TIMESTAMP > input$startdate & TIMESTAMP < input$enddate) %>% 
+    snowdat_hr %>%  filter(name %in% input$var3 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
       ggplot(aes(x = TIMESTAMP, y = value, color = name)) +
       geom_line() +
       labs(title = "Timeseries Analysis of Snow Data (hr)",
@@ -252,17 +280,40 @@ server <- function(input, output, sessions) {
   
   output$var_dis <- renderPlot({
     if(input$checkboxTogDis == FALSE)
-    discharge_3 %>%  filter(name == input$var_dis & TIMESTAMP > input$startdate & TIMESTAMP < input$enddate) %>% 
-      ggplot(aes(x = TIMESTAMP, y = value, color = "blue")) +
+    discharge_3 %>%  filter(name == input$var_dis & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
+      ggplot(aes(x = TIMESTAMP, y = value, color = TIMESTAMP)) +
       geom_line() +
+      scale_color_gradientn(colours = rainbow(5)) +
       labs(title = "Timeseries Analysis of Discharge data",
            x = "Time", 
            y = "mm/Hr") +
       theme_bw()
     else
-      discharge_9 %>%  filter(name == input$var_dis & TIMESTAMP > input$startdate & TIMESTAMP < input$enddate) %>% 
-      ggplot(aes(x = TIMESTAMP, y = value, color = "red")) +
+      discharge_9 %>%  filter(name == input$var_dis & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
+      ggplot(aes(x = TIMESTAMP, y = value, color = TIMESTAMP)) +
       geom_line() +
+      scale_color_gradientn(colours = rainbow(5)) +
+      labs(title = "Timeseries Analysis of Discharge data",
+           x = "Time", 
+           y = "mm/Hr)") +
+      theme_bw()
+  })
+  
+  output$var_dis2 <- renderPlot({
+    if(input$checkboxTogDis == FALSE)
+      discharge_3 %>%  filter(name == input$var_dis & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
+      ggplot(aes(x = TIMESTAMP, y = value, color = TIMESTAMP)) +
+      geom_line() +
+      scale_color_gradientn(colours = rainbow(5)) +
+      labs(title = "Timeseries Analysis of Discharge data",
+           x = "Time", 
+           y = "mm/Hr") +
+      theme_bw()
+    else
+      discharge_9 %>%  filter(name == input$var_dis & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
+      ggplot(aes(x = TIMESTAMP, y = value, color = TIMESTAMP)) +
+      geom_line() +
+      scale_color_gradientn(colours = rainbow(5)) +
       labs(title = "Timeseries Analysis of Discharge data",
            x = "Time", 
            y = "mm/Hr)") +
@@ -326,6 +377,67 @@ server <- function(input, output, sessions) {
            y = "Depth of Sensor(cm)", 
            title = "RTD Sensor Heat map")
   })
+  
+  observeEvent(input$dataDL, {
+    drive_deauth()
+    
+    drive_download(as_id("1yhfJ7zJdumI0cMxQ7i7Zzmebo5pdEV_E"), overwrite = TRUE)
+    drive_download(as_id("1wsvu3CXHj81n81eS4wbLE1dj3kpSrOqH"), overwrite = TRUE)
+    drive_download(as_id("175Ai1DzFq13ut2J1JD43HExgh7n15HVS"), overwrite = TRUE)
+    drive_download(as_id("1eq62MIa6n0tpeLTG-4R64q8iuhOHDDAi"), overwrite = TRUE)
+    drive_download(as_id("1g3iBLteoLn_ipqhbY25UahJd--bWlwHf"), overwrite = TRUE)
+    drive_download(as_id("1Ckb2L41xRAopHM3y4nnv8JmFEY6JN599"), overwrite = TRUE)
+    drive_download(as_id("12CQ5lF-dU9B950eaEOYWp27slikcyNS0"), overwrite = TRUE)
+    drive_download(as_id("12CVHTfrD9Qef9GB_CTn0qX-EExo-HgNw"), overwrite = TRUE)
+    
+  })
+
+  observeEvent(input$startdate, {filterdate$x[1] <- ymd(input$startdate)}) 
+  observeEvent(input$enddate, {filterdate$x[2] <- ymd(input$enddate)}) 
+  
+  observeEvent(input$plot1_dblclick, {
+    brush <- input$plot1_brush
+    
+    
+    if (!is.null(brush)) {
+      filterdate$x <- c(brush$xmin, brush$xmax)
+    } 
+    
+    
+    else {
+      filterdate$x <- c(ymd(input$startdate), ymd(input$enddate))
+    }
+  }
+  )
+  observeEvent(input$plot2_dblclick, {
+    brush <- input$plot2_brush
+    
+    
+    if (!is.null(brush)) {
+      filterdate$x <- c(brush$xmin, brush$xmax)
+    } 
+    
+    
+    else {
+      filterdate$x <- c(ymd(input$startdate), ymd(input$enddate))
+    }
+  }
+  )
+  observeEvent(input$plot3_dblclick, {
+    brush <- input$plot3_brush
+    
+    
+    if (!is.null(brush)) {
+      filterdate$x <- c(brush$xmin, brush$xmax)
+    } 
+    
+    
+    else {
+      filterdate$x <- c(ymd(input$startdate), ymd(input$enddate))
+    }
+  }
+  )
+  
 }
 
 shinyApp(ui, server)
