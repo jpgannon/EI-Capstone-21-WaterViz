@@ -6,10 +6,9 @@ library(dplyr)
 library(shinythemes)
 library(googledrive)
 
-setwd("~/EI Capstone")
+
 #Reading in Datasets
 
-install.packages('rsconnect')
 
 well9 <- read_csv("Water_table_WS9_WS_9_wells.dat",
                   skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt", 
@@ -180,9 +179,8 @@ ui <- fluidPage(theme = shinytheme("slate"),
               selectInput("var3", "What snow data (hr) would you like to plot over time?", 
                           choices = unique(snowdat_hr$name), selected = unique(snowdat_hr$name)[1], multiple = TRUE),
               checkboxInput("checkbox3", "Show plot?", TRUE),
-              selectInput("var_dis", "What discharge data would you like to plot over time?",
-                          choices = unique(discharge_data$name), selected=unique(discharge_data$name)[1], multiple = FALSE),
-              checkboxInput("checkboxTogDis", "Toggle Watersheds (Off: 3, On: 9)", FALSE),
+              selectInput("var_dis", "What discharge data would you like to plot over time? Watershed 3 (1) / Watershed 9 (2)",
+                          choices = unique(discharge_data$watershed), selected=unique(discharge_data$watershed)[1], multiple = TRUE),
               checkboxInput("checkbox4", "Show plot?", TRUE),
               actionButton("dataDL", "Download most recent data"),
             ),
@@ -208,15 +206,15 @@ ui <- fluidPage(theme = shinytheme("slate"),
           )
  ),
     ###Creates tab and tab settings for Watershed 3
-    tabPanel("Bivariate",
+    tabPanel("Bivariate Analysis",
         sidebarLayout(
           sidebarPanel(
             selectInput("var_x", "What variable would you like to plot on the x axis?", 
                         choices = unique(well_data$name), selected = unique(well_data$name)[1], multiple = FALSE),
             selectInput("var_y", "What variable would you like to plot on the y axis?", 
                         choices = unique(well_data$name), selected = unique(well_data$name)[2], multiple = FALSE),
-            selectInput("var_dis2", "What discharge data would you like to plot over time?",
-                        choices = unique(discharge_data$name), selected=unique(discharge_data$name)[1], multiple = FALSE),
+            selectInput("var_dis2", "What discharge data would you like to plot over time? Watershed 3 (1) / Watershed 9 (2)",
+                        choices = unique(discharge_data$watershed), selected=unique(discharge_data$watershed)[1], multiple = TRUE),
           ),
           mainPanel(plotOutput("var_x"), 
                     plotOutput("var_dis2"))
@@ -224,7 +222,7 @@ ui <- fluidPage(theme = shinytheme("slate"),
              
     ),
 
-  tabPanel("Depth of Snow Heat Map", 
+  tabPanel("Snow Temperature Heat Map", 
            sidebarLayout(
              sidebarPanel(
               dateInput("startdate2", label = "Start Date", val= "2020-12-14"), 
@@ -247,12 +245,14 @@ server <- function(input, output, sessions) {
   output$var1 <- renderPlot({
     well_data %>%  filter(name %in% input$var1 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
       ggplot(aes(x = TIMESTAMP, y = value, color = name)) +
-      geom_line() +
+      geom_line()+
+      theme_bw() +
+      theme(legend.position="bottom") +
       labs(title = "Timeseries Analysis of Well Data",
-           x = "Time", 
+           x = element_blank(), 
            y = "Depth (cm)",
-           fill = "Wells") +
-      theme_bw()
+           fill = "Wells") 
+      
       
   })
   
@@ -260,64 +260,48 @@ server <- function(input, output, sessions) {
     snowdat_15m %>%  filter(name %in% input$var2 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
       ggplot(aes(x = TIMESTAMP, y = value, color = name)) +
       geom_line() +
+      theme_bw() +
+      theme(legend.position="bottom") +
       labs(title = "Timeseries Analysis of Snow Data (15m)",
            x = "Time", 
-           y = "Depth (cm)") +
-      theme_bw()
+           y = "Depth (cm)") 
+      
     
   })
   
   output$var3 <- renderPlot({
     snowdat_hr %>%  filter(name %in% input$var3 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
       ggplot(aes(x = TIMESTAMP, y = value, color = name)) +
+      theme_bw() +
+      theme(legend.position="bottom") +
       geom_line() +
       labs(title = "Timeseries Analysis of Snow Data (hr)",
            x = "Time", 
-           y = "Depth (cm)") +
-      theme_bw()
+           y = "Depth (cm)") 
     
   })
   
   output$var_dis <- renderPlot({
-    if(input$checkboxTogDis == FALSE)
-    discharge_3 %>%  filter(name == input$var_dis & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
-      ggplot(aes(x = TIMESTAMP, y = value, color = TIMESTAMP)) +
+    discharge_data %>%  filter(watershed %in% input$var_dis & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
+      ggplot(aes(x = TIMESTAMP, y = value, color = watershed)) +
       geom_line() +
-      scale_color_gradientn(colours = rainbow(5)) +
+      theme_bw() +
+      theme(legend.direction = "vertical", legend.position="bottom") +
       labs(title = "Timeseries Analysis of Discharge data",
            x = "Time", 
-           y = "mm/Hr") +
-      theme_bw()
-    else
-      discharge_9 %>%  filter(name == input$var_dis & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
-      ggplot(aes(x = TIMESTAMP, y = value, color = TIMESTAMP)) +
-      geom_line() +
-      scale_color_gradientn(colours = rainbow(5)) +
-      labs(title = "Timeseries Analysis of Discharge data",
-           x = "Time", 
-           y = "mm/Hr)") +
-      theme_bw()
+           y = "mm/Hr") 
+    
   })
   
   output$var_dis2 <- renderPlot({
-    if(input$checkboxTogDis == FALSE)
-      discharge_3 %>%  filter(name == input$var_dis & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
-      ggplot(aes(x = TIMESTAMP, y = value, color = TIMESTAMP)) +
+    discharge_data %>%  filter(watershed %in% input$var_dis2 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
+      ggplot(aes(x = TIMESTAMP, y = value, color = watershed)) +
       geom_line() +
-      scale_color_gradientn(colours = rainbow(5)) +
+      theme_bw() +
+      theme(legend.direction = "vertical", legend.position="bottom") +
       labs(title = "Timeseries Analysis of Discharge data",
            x = "Time", 
-           y = "mm/Hr") +
-      theme_bw()
-    else
-      discharge_9 %>%  filter(name == input$var_dis & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
-      ggplot(aes(x = TIMESTAMP, y = value, color = TIMESTAMP)) +
-      geom_line() +
-      scale_color_gradientn(colours = rainbow(5)) +
-      labs(title = "Timeseries Analysis of Discharge data",
-           x = "Time", 
-           y = "mm/Hr)") +
-      theme_bw()
+           y = "mm/Hr") 
   })
   
   
@@ -350,7 +334,8 @@ server <- function(input, output, sessions) {
                           space = "Lab",
                           na.value = "grey50",
                           guide = "colourbar",
-                          aesthetics = "fill") +
+                          aesthetics = "fill",
+                          name = "Snow Temperature") +
     labs(x = "Date",
          y = "Depth of Sensor (cm)", 
          title = "RTD Sensor Heat map") +
@@ -369,7 +354,8 @@ server <- function(input, output, sessions) {
                           space = "Lab",
                           na.value = "grey50",
                           guide = "colourbar",
-                          aesthetics = "fill") +
+                          aesthetics = "fill",
+                          name = "Snow Temperature") +
       scale_y_discrete(labels = c(("RTD1" = "0"), ("RTD2" = "5"), ("RTD3" = "10"), 
                                   ("RTD4" = "15"), ("RTD5" = "20"), ("RTD6" = "25"), 
                                   ("RTD7" = "30"), ("RTD8" = "35"), ("RTD9" = "40")))+
