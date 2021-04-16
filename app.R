@@ -13,22 +13,22 @@ library(googledrive)
 well9 <- read_csv("Water_table_WS9_WS_9_wells.dat",
                   skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt", 
                                           X4= "ptemp_Max" , X5= "HB156_psi", X6= "HB156_rawdepth", 
-                                          X7= "HB156_depth_corr", X8= "HB156_corr_depth", X9=  "HB156_welltemp" , 
+                                          X7= "HB156_depth_corr", X8= "HB156", X9=  "HB156_welltemp" , 
                                           X10= "HB179s_psi", X11= "HB179s_rawdepth", X12=  "HB179s_depth_corr" , 
-                                          X13= "HB179s_corr_depth" , X14= "HB179s_welltemp" , 
+                                          X13= "HB179s" , X14= "HB179s_welltemp" , 
                                           X15= "HB176d_psi" , X16= "HB176d_rawdepth", 
-                                          X17= "HB176d_depth_corr" , X18= "HB176d_corr_depth", X19 = "HB176d_welltemp")) %>% 
-  select(TIMESTAMP, HB156_corr_depth, HB179s_corr_depth, HB176d_corr_depth) %>% 
-  pivot_longer(cols = c(HB156_corr_depth, HB179s_corr_depth, HB176d_corr_depth))
+                                          X17= "HB176d_depth_corr" , X18= "HB176d", X19 = "HB176d_welltemp")) %>% 
+  select(TIMESTAMP, HB156, HB179s, HB176d) %>% 
+  pivot_longer(cols = c(HB156, HB179s, HB176d))
 
 well3 <- read_csv("Water_table_WS3upper_WS_3Up_wells.dat",
                   skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt", X4= "ptemp_Max" ,
-                                          X5= "WS3_N1_psi",X6="WS3_N1_rawdepth",X7="WS3_N1_depth_corr",X8="WS3_N1_corr_depth",
+                                          X5= "WS3_N1_psi",X6="WS3_N1_rawdepth",X7="WS3_N1_depth_corr",X8="WS3_N1",
                                           X9="WS3_N1_welltemp",X10="WS3_N2_psi",X11="WS3_N2_rawdepth",X12="WS3_N2_depth_corr",
-                                          X13="WS3_N2_corr_depth",X14="WS3_N2_welltemp",X15="WS3_42_4_d2_psi",X16="WS3_42_4_d2_rawdepth",
-                                          X17="WS3_42_4_d2_depth_corr",X18="WS3_42_4_d2_corr_depth",X19="WS3_42_4_d2_welltemp")) %>% 
-  select(TIMESTAMP, WS3_N1_corr_depth, WS3_N2_corr_depth, WS3_42_4_d2_corr_depth) %>% 
-  pivot_longer(cols = c(WS3_N1_corr_depth, WS3_N2_corr_depth, WS3_42_4_d2_corr_depth))
+                                          X13="WS3_N2",X14="WS3_N2_welltemp",X15="WS3_42_4_d2_psi",X16="WS3_42_4_d2_rawdepth",
+                                          X17="WS3_42_4_d2_depth_corr",X18="WS3_42_4_d2",X19="WS3_42_4_d2_welltemp")) %>% 
+  select(TIMESTAMP, WS3_N1, WS3_N2, WS3_42_4_d2) %>% 
+  pivot_longer(cols = c(WS3_N1, WS3_N2, WS3_42_4_d2))
 
 well9_snowdat_15m <- read_csv("Water_table_WS9_WS_9_snowdat_15min.dat",
                               skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt", 
@@ -148,6 +148,15 @@ precip <- read_csv("wxsta1_Wx_1_rain.dat",
   select(TIMESTAMP, ReportPCP) %>% 
   pivot_longer(cols = c(ReportPCP))
 
+well9_Precip <- read_csv("rrg19_Rg_19-2019-08-09.dat",
+                         skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="GageMinV", 
+                                                 X4= "ActTemp" , X5= "ActDepth", X6= "ReportPCP", 
+                                                 X7= "ODPCounts", X8= "blockedSec", X9=  "Scan10" , 
+                                                 X10= "ActDepthRA")) %>% 
+  select(TIMESTAMP, ReportPCP) %>% 
+  pivot_longer(cols = c(ReportPCP))
+
+precip_data <- bind_rows(precip, well9_Precip, .id = "watershed")
 
 #filtering dates from the DoS data we just selected 
 #so there is more continuity with the data, 
@@ -162,14 +171,26 @@ ui <- fluidPage(theme = shinytheme("slate"),
              sidebarLayout(
               sidebarPanel(width = 1
              ),
-             mainPanel()),
+             mainPanel("Welcome to our app! You will find that there are several
+                                 options located on the top of your screen.
+                                They include time series analysis, a bivariate analysis, snow temperature heat map for wells 3 and 9.
+                                In the time series tab you will be able to visualize well depth, watershed data, snow depth for every 15 mins and hourly data and discharge data
+                                The bivariate analysis tab you will be able to visualize wells 3 and 9 simultaneously. The snow temperature heat tab
+                                you can visualize different temperature levels of the snow over the time with color coordination. Each plot includes a legend and axis descriptions.
+                                . Click on the respective tabs you're
+                                interested in and there will be multiple drop down options on your left.
+                                Select the type of plot you'd like to see and the wells. Option 1 is well 3
+                                and option 2 is well 9. For more information you can highlight and click a section of
+                                plot in order to get a closer look at specific timestamps of the time series
+                                data. Double click to clear out the zoomed in look. I hope you have found
+                                this guide useful in navigating our app!")),
              #Creates App home page tab
              titlePanel("Hubbard Brook Watershed Vizualization")),
     tabPanel("Timeseries analysis",
           sidebarLayout(
             sidebarPanel(
               dateInput("startdate", label = "Start Date", val= "2020-12-14"), 
-              dateInput("enddate", label= "End Date", value= "2021-03-26"),
+              dateInput("enddate", label= "End Date", value= "2021-04-15"),
               selectInput("var1", "What well would you like to plot over time?", 
                           choices = unique(well_data$name), selected = unique(well_data$name)[1], multiple = TRUE),
               checkboxInput("checkbox1", "Show plot?", TRUE),
@@ -182,6 +203,9 @@ ui <- fluidPage(theme = shinytheme("slate"),
               selectInput("var_dis", "What discharge data would you like to plot over time? Watershed 3 (1) / Watershed 9 (2)",
                           choices = unique(discharge_data$watershed), selected=unique(discharge_data$watershed)[1], multiple = TRUE),
               checkboxInput("checkbox4", "Show plot?", TRUE),
+              selectInput("precip_plot", "Which rain data would you like to plot?",
+                          choices = unique(precip_data$watershed), selected=unique(discharge_data$watershed)[1], multiple = TRUE),
+              checkboxInput("checkbox5", "Show precip plot?", TRUE),
               actionButton("dataDL", "Download most recent data"),
             ),
             mainPanel(conditionalPanel(condition = "input.checkbox1 == 1",plotOutput("var1", width="100%", height = "215px",
@@ -201,8 +225,17 @@ ui <- fluidPage(theme = shinytheme("slate"),
                                                                                      brush = brushOpts(
                                                                                        id = "plot3_brush",
                                                                                        resetOnNew = TRUE))),
-                      conditionalPanel(condition = "input.checkbox4 == 1",plotOutput("var_dis", width="100%", height = "215px", 
-                                                                                     )))
+                      conditionalPanel(condition = "input.checkbox4 == 1",plotOutput("var_dis", width="100%", height = "215px",
+                                                                                     dblclick = "plot4_dblclick",
+                                                                                     brush = brushOpts(
+                                                                                       id = "plot4_brush",
+                                                                                       resetOnNew = TRUE
+                                                                                     ))),
+                      conditionalPanel(condition = "input.checkbox5 == 1",plotOutput("precip_plot", width="100%", height = "215px",
+                                                                                     dblclick = "plot5_dblclick",
+                                                                                     brush = brushOpts(
+                                                                                       id = "plot5_brush"
+                                                                                     ))))
           )
  ),
     ###Creates tab and tab settings for Watershed 3
@@ -214,10 +247,15 @@ ui <- fluidPage(theme = shinytheme("slate"),
             selectInput("var_y", "What variable would you like to plot on the y axis?", 
                         choices = unique(well_data$name), selected = unique(well_data$name)[2], multiple = FALSE),
             selectInput("var_dis2", "What discharge data would you like to plot over time? Watershed 3 (1) / Watershed 9 (2)",
-                        choices = unique(discharge_data$watershed), selected=unique(discharge_data$watershed)[1], multiple = TRUE),
+                        choices = unique(discharge_data$watershed), selected=unique(discharge_data$watershed)[1], multiple = FALSE),
           ),
           mainPanel(plotOutput("var_x"), 
-                    plotOutput("var_dis2"))
+                    plotOutput("var_dis2", width = "100%", height = "215px", 
+                               dblclick = "plot5_dblclick",
+                               brush = brushOpts(
+                                 id = "plot5_brush",
+                                 resetOnNew = TRUE
+                               )))
         )
              
     ),
@@ -226,21 +264,31 @@ ui <- fluidPage(theme = shinytheme("slate"),
            sidebarLayout(
              sidebarPanel(
               dateInput("startdate2", label = "Start Date", val= "2020-12-14"), 
-              dateInput("enddate2", label= "End Date", value=Sys.Date(), max=Sys.Date()),
+              dateInput("enddate2", label= "End Date", val = "2021-04-15"),
               selectInput("var4", "Which well depth of sensor heat map would you like to see (15min interval)? (Well 3(1) / Well 9(2))",
                           choices = unique(RTD_15$well), selected = unique(RTD_15$well[1]), multiple = FALSE),
               selectInput("var5", "Which well depth of sensor heat map would you like to see (hr interval)? (Well 3(1) / Well 9(2))",
                           choices = unique(RTD_hr$well), selected = unique(RTD_hr$well[1]), multiple = FALSE)
              ),
-             mainPanel(plotOutput("var4"),
-                       plotOutput("var5"))
+             mainPanel(plotOutput("var4", width = "100%", height = "215px",
+                                  dblclick = "plot6_dblclick", 
+                                  brush = brushOpts(
+                                    id = "plot6_brush",
+                                    resetOnNew = TRUE
+                                  )),
+                       plotOutput("var5", width = "100%", height = "215px",
+                                  dblclick = "plot7_dblclick",
+                                  brush = brushOpts(
+                                    id = "plot7_brush",
+                                    resetOnNew = TRUE
+                                  )))
            ))
   )
 )
 
 server <- function(input, output, sessions) {
   
-  filterdate <- reactiveValues(x = ymd(c("2020-12-14", "2021-03-26")))
+  filterdate <- reactiveValues(x = ymd(c("2020-12-14", "2021-04-15")))
   
   output$var1 <- renderPlot({
     well_data %>%  filter(name %in% input$var1 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
@@ -249,9 +297,10 @@ server <- function(input, output, sessions) {
       theme_bw() +
       theme(legend.position="bottom") +
       labs(title = "Timeseries Analysis of Well Data",
-           x = element_blank(), 
+            
            y = "Depth (cm)",
-           fill = "Wells") 
+           fill = "Wells") +
+      xlab(element_blank())
       
       
   })
@@ -263,7 +312,7 @@ server <- function(input, output, sessions) {
       theme_bw() +
       theme(legend.position="bottom") +
       labs(title = "Timeseries Analysis of Snow Data (15m)",
-           x = "Time", 
+           x = element_blank(), 
            y = "Depth (cm)") 
       
     
@@ -276,7 +325,7 @@ server <- function(input, output, sessions) {
       theme(legend.position="bottom") +
       geom_line() +
       labs(title = "Timeseries Analysis of Snow Data (hr)",
-           x = "Time", 
+           x = element_blank(), 
            y = "Depth (cm)") 
     
   })
@@ -288,19 +337,29 @@ server <- function(input, output, sessions) {
       theme_bw() +
       theme(legend.direction = "vertical", legend.position="bottom") +
       labs(title = "Timeseries Analysis of Discharge data",
-           x = "Time", 
+           x = element_blank(), 
            y = "mm/Hr") 
     
   })
   
+  output$precip_plot <- renderPlot({
+    precip_data %>% filter(watershed %in% input$precip_plot & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
+    ggplot(aes(x= TIMESTAMP, y= value, color = watershed)) +
+      geom_bar(stat= "identity") +
+      xlab(element_blank())+
+      ylab("Amount of Precipitation (cm)")+
+      ggtitle("Precipitation Data")+
+      theme_bw()
+  })
+  
   output$var_dis2 <- renderPlot({
     discharge_data %>%  filter(watershed %in% input$var_dis2 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
-      ggplot(aes(x = TIMESTAMP, y = value, color = watershed)) +
+      ggplot(aes(x = TIMESTAMP, y = value, color = TIMESTAMP)) +
       geom_line() +
       theme_bw() +
-      theme(legend.direction = "vertical", legend.position="bottom") +
+      theme(legend.direction = "vertical", legend.position="right") +
       labs(title = "Timeseries Analysis of Discharge data",
-           x = "Time", 
+           x = element_blank(), 
            y = "mm/Hr") 
   })
   
@@ -316,17 +375,18 @@ server <- function(input, output, sessions) {
     toPlot <- inner_join(varY, varX, by = "TIMESTAMP")
    
     toPlot %>% 
+      filter(TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>%
       ggplot(aes(x = value.x, y = value.y, color = TIMESTAMP)) +
       geom_point() +
-      scale_color_gradientn(colours = rainbow(5)) +
+      theme_bw() +
       labs(title = "Bivariate Analysis of Well Data",
            x = unique(toPlot$name.x),
-           y = unique(toPlot$name.y)) +
-      theme_bw()
+           y = unique(toPlot$name.y)) 
+      
   })
 
   output$var4 <- renderPlot({
-    RTD_15 %>% filter(well == input$var4 & TIMESTAMP > input$startdate2 & TIMESTAMP < input$enddate2) %>% 
+    RTD_15 %>% filter(well == input$var4 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
       ggplot(aes(x = TIMESTAMP, y = name, fill = value)) +
       geom_tile() +  
       scale_fill_gradient(low = "#1fddff",
@@ -335,10 +395,10 @@ server <- function(input, output, sessions) {
                           na.value = "grey50",
                           guide = "colourbar",
                           aesthetics = "fill",
-                          name = "Snow Temperature") +
-    labs(x = "Date",
-         y = "Depth of Sensor (cm)", 
-         title = "RTD Sensor Heat map") +
+                          name = "Snow Depth (cm)") +
+    labs(x = element_blank(),
+         y = "Temperature (F)", 
+         title = "RTD Temperature Heat map") +
       scale_y_discrete(labels = c(("RTD1" = "0"), ("RTD2" = "5"), ("RTD3" = "10"), 
                                   ("RTD4" = "15"), ("RTD5" = "20"), ("RTD6" = "25"), 
                                   ("RTD7" = "30"), ("RTD8" = "35"), ("RTD9" = "40")))+
@@ -346,7 +406,7 @@ server <- function(input, output, sessions) {
   })
   
   output$var5 <- renderPlot({
-    RTD_hr %>% filter(well == input$var5 & TIMESTAMP > input$startdate2 & TIMESTAMP < input$enddate2) %>% 
+    RTD_hr %>% filter(well == input$var5 & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
       ggplot(aes(x = TIMESTAMP, y = name, fill = value)) +
       geom_tile() +  
       scale_fill_gradient(low = "#1fddff",
@@ -355,13 +415,14 @@ server <- function(input, output, sessions) {
                           na.value = "grey50",
                           guide = "colourbar",
                           aesthetics = "fill",
-                          name = "Snow Temperature") +
-      scale_y_discrete(labels = c(("RTD1" = "0"), ("RTD2" = "5"), ("RTD3" = "10"), 
-                                  ("RTD4" = "15"), ("RTD5" = "20"), ("RTD6" = "25"), 
-                                  ("RTD7" = "30"), ("RTD8" = "35"), ("RTD9" = "40")))+
-      labs(x = "Date",
-           y = "Depth of Sensor(cm)", 
-           title = "RTD Sensor Heat map")
+                          name = "Snow Depth (cm)") +
+      scale_y_discrete(labels = c(("RTD_Avg1" = "0"), ("RTD_Avg2" = "5"), ("RTD_Avg3" = "10"), 
+                                  ("RTD_Avg4" = "15"), ("RTD_Avg5" = "20"), ("RTD_Avg6" = "25"), 
+                                  ("RTD_Avg7" = "30"), ("RTD_Avg8" = "35"), ("RTD_Avg9" = "40")))+
+      labs(x = element_blank(),
+           y = "Temperature (F)", 
+           title = "RTD Temperature Heat map") +
+      theme_bw()
   })
   
   observeEvent(input$dataDL, {
@@ -375,6 +436,8 @@ server <- function(input, output, sessions) {
     drive_download(as_id("1Ckb2L41xRAopHM3y4nnv8JmFEY6JN599"), overwrite = TRUE)
     drive_download(as_id("12CQ5lF-dU9B950eaEOYWp27slikcyNS0"), overwrite = TRUE)
     drive_download(as_id("12CVHTfrD9Qef9GB_CTn0qX-EExo-HgNw"), overwrite = TRUE)
+    drive_download(as_id("12C1vsIsA7Fs6pN-EbpF20Z0Lm5YsOsiN"), overwrite = TRUE)
+    drive_download(as_id("12DGM7SBNwnXPL9K8I8dYo8huvVjBfifQ"), overwrite = TRUE)
     
   })
 
@@ -423,7 +486,63 @@ server <- function(input, output, sessions) {
     }
   }
   )
+  observeEvent(input$plot4_dblclick, {
+    brush <- input$plot4_brush
+    
+    
+    if (!is.null(brush)) {
+      filterdate$x <- c(brush$xmin, brush$xmax)
+    } 
+    
+    
+    else {
+      filterdate$x <- c(ymd(input$startdate), ymd(input$enddate))
+    }
+  }
+  )
+  observeEvent(input$plot5_dblclick, {
+    brush <- input$plot5_brush
+    
+    
+    if (!is.null(brush)) {
+      filterdate$x <- c(brush$xmin, brush$xmax)
+    } 
+    
+    
+    else {
+      filterdate$x <- c(ymd(input$startdate), ymd(input$enddate))
+    }
+  }
+  ) 
   
+  observeEvent(input$plot6_dblclick, {
+    brush <- input$plot6_brush
+    
+    
+    if (!is.null(brush)) {
+      filterdate$x <- c(brush$xmin, brush$xmax)
+    } 
+    
+    
+    else {
+      filterdate$x <- c(ymd(input$startdate), ymd(input$enddate))
+    }
+  }
+  )
+  observeEvent(input$plot7_dblclick, {
+    brush <- input$plot7_brush
+    
+    
+    if (!is.null(brush)) {
+      filterdate$x <- c(brush$xmin, brush$xmax)
+    } 
+    
+    
+    else {
+      filterdate$x <- c(ymd(input$startdate), ymd(input$enddate))
+    }
+  }
+  )
 }
 
 shinyApp(ui, server)
