@@ -1,0 +1,27 @@
+library(shiny)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+
+
+
+well9_15_RTD_depth <- read_csv("Water_table_WS9_WS_9_snowdat_15min.dat",
+                         skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt", 
+                                                 X4= "ptemp" , X5= "H2O_Content_1", X6= "H2O_Content_2", 
+                                                 X7= "Avg_Period_1", X8= "Avg_Period_2", X9=  "RTD1" , X10= "RTD2",
+                                                 X11= "RTD3", X12=  "RTD4" , X13= "RTD5" , X14= "RTD6" , X15= "RTD7" , 
+                                                 X16= "RTD8", X17= "RTD9" , X18= "Air_TempC_Avg", X19 = "Depthraw", X20= "Depthscaled")) %>% 
+  select(TIMESTAMP, RTD1 , RTD2 , RTD3 , RTD4 , RTD5 ,
+         RTD6 , RTD7 , RTD8, RTD9, Depthraw) %>% 
+  pivot_longer(cols = c(RTD1 , RTD2 , RTD3 , RTD4 , RTD5 ,
+                        RTD6 , RTD7 , RTD8 , RTD9))
+
+
+
+snow_depth_plot <- ggplot(data = well9_15_RTD_depth , mapping = aes(x= TIMESTAMP , y = Depthraw)) +
+  geom_line() +
+  labs(title = "Time Series for Snow Pact Depth" , y = "Depth (cm)") 
+
+
+snow_depth_plot
