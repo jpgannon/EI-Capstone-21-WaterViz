@@ -84,7 +84,7 @@ well9_15_RTD <- read_csv("Water_table_WS9_WS_9_snowdat_15min.dat",
                                                  X11= "RTD3", X12=  "RTD4" , X13= "RTD5" , X14= "RTD6" , X15= "RTD7" , 
                                                  X16= "RTD8", X17= "RTD9" , X18= "Air_TempC_Avg", X19 = "Depthraw", X20= "Depthscaled")) %>% 
   select(TIMESTAMP, RTD1 , RTD2 , RTD3 , RTD4 , RTD5 ,
-         RTD6 , RTD7 , RTD8, RTD9) %>% 
+         RTD6 , RTD7 , RTD8, RTD9, Depthraw) %>% 
   pivot_longer(cols = c(RTD1 , RTD2 , RTD3 , RTD4 , RTD5 ,
                         RTD6 , RTD7 , RTD8 , RTD9))
 
@@ -281,7 +281,9 @@ ui <- fluidPage(theme = shinytheme("slate"),
                                   brush = brushOpts(
                                     id = "plot7_brush",
                                     resetOnNew = TRUE
-                                  )))
+                                  )),
+                       plotOutput("line_snow")
+                       )
            ))
   )
 )
@@ -423,6 +425,14 @@ server <- function(input, output, sessions) {
            y = "Temperature (F)", 
            title = "RTD Temperature Heat map") +
       theme_bw()
+  })
+  
+  output$line_snow <- renderPlot({
+    ggplot(data = well9_15_RTD , mapping = aes(x= TIMESTAMP , y = Depthraw)) +
+      geom_line() +
+      theme_bw() +
+      labs(title = "Time Series for Snow Pact Depth" , y = "Depth (cm)") 
+    
   })
   
   observeEvent(input$dataDL, {
