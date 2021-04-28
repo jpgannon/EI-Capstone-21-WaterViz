@@ -6,7 +6,6 @@ library(dplyr)
 library(shinythemes)
 library(googledrive)
 
-
 #Reading in Datasets
 
 
@@ -84,9 +83,18 @@ well9_15_RTD <- read_csv("Water_table_WS9_WS_9_snowdat_15min.dat",
                                                  X11= "RTD3", X12=  "RTD4" , X13= "RTD5" , X14= "RTD6" , X15= "RTD7" , 
                                                  X16= "RTD8", X17= "RTD9" , X18= "Air_TempC_Avg", X19 = "Depthraw", X20= "Depthscaled")) %>% 
   select(TIMESTAMP, RTD1 , RTD2 , RTD3 , RTD4 , RTD5 ,
-         RTD6 , RTD7 , RTD8, RTD9, Depthraw) %>% 
+         RTD6 , RTD7 , RTD8, RTD9) %>% 
   pivot_longer(cols = c(RTD1 , RTD2 , RTD3 , RTD4 , RTD5 ,
                         RTD6 , RTD7 , RTD8 , RTD9))
+
+ws9_depth <- read_csv("Water_table_WS9_WS_9_snowdat_15min.dat",
+                   skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt", 
+                                           X4= "ptemp" , X5= "H2O_Content_1", X6= "H2O_Content_2", 
+                                           X7= "Avg_Period_1", X8= "Avg_Period_2", X9=  "RTD1" , X10= "RTD2",
+                                           X11= "RTD3", X12=  "RTD4" , X13= "RTD5" , X14= "RTD6" , X15= "RTD7" , 
+                                           X16= "RTD8", X17= "RTD9" , X18= "Air_TempC_Avg", X19 = "Depthraw", X20= "Depthscaled")) %>% 
+  select(TIMESTAMP, Depthraw) %>% 
+  pivot_longer(cols = c(Depthraw))
 
 well9_hr_RTD <- read_csv("Water_table_WS9_WS_9_snowdat_hr.dat",
                          skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="H2O_Content_1_Avg", 
@@ -109,6 +117,15 @@ well3_15_RTD <- read_csv("Water_table_WS3upper_WS_3Up_snowdat_15min.dat",
          RTD6 , RTD7 , RTD8, RTD9) %>% 
   pivot_longer(cols = c(RTD1 , RTD2 , RTD3 , RTD4 , RTD5 ,
                         RTD6 , RTD7 , RTD8 , RTD9))
+
+ws3_depth <- read_csv("Water_table_WS3upper_WS_3Up_snowdat_15min.dat",
+                   skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="Batt_Volt", X4= "ptemp" ,
+                                           X5= "H2O_Content_1", X6= "H2O_Content_2", X7= "Avg_Period_1",
+                                           X8= "Avg_Period_2", X9=  "RTD1" , X10= "RTD2", X11= "RTD3",
+                                           X12=  "RTD4" , X13= "RTD5" , X14= "RTD6" , X15= "RTD7" , X16= "RTD8",
+                                           X17= "RTD9" , X18= "Air_TempC_Avg", X19 = "Depthraw", X20= "Depthscaled")) %>% 
+  select(TIMESTAMP, Depthraw) %>% 
+  pivot_longer(cols = c(Depthraw))
 
 well3_hr_RTD <- read_csv("Water_table_WS3upper_WS_3Up_snowdat_hr.dat",
                          skip = 4, col_names = c(X1 = "TIMESTAMP" , X2 = "RECORD", X3 ="H2O_Content_1_Avg",
@@ -163,27 +180,23 @@ precip_data <- bind_rows(precip, well9_Precip, .id = "watershed")
 #if not the heat map would be mostly empty
 
 RTD_15 <- bind_rows(well3_15_RTD, well9_15_RTD, .id = "well")
+
 RTD_hr <- bind_rows(well3_hr_RTD, well9_hr_RTD, .id = "well")
 
 ui <- fluidPage(theme = shinytheme("slate"),
   tabsetPanel(
     tabPanel("Home Page",
              sidebarLayout(
-              sidebarPanel(width = 1
-             ),
-             mainPanel("Welcome to our app! You will find that there are several
-                                 options located on the top of your screen.
-                                They include time series analysis, a bivariate analysis, snow temperature heat map for wells 3 and 9.
-                                In the time series tab you will be able to visualize well depth, watershed data, snow depth for every 15 mins and hourly data and discharge data
-                                The bivariate analysis tab you will be able to visualize wells 3 and 9 simultaneously. The snow temperature heat tab
-                                you can visualize different temperature levels of the snow over the time with color coordination. Each plot includes a legend and axis descriptions.
-                                . Click on the respective tabs you're
-                                interested in and there will be multiple drop down options on your left.
-                                Select the type of plot you'd like to see and the wells. Option 1 is well 3
-                                and option 2 is well 9. For more information you can highlight and click a section of
-                                plot in order to get a closer look at specific timestamps of the time series
-                                data. Double click to clear out the zoomed in look. I hope you have found
-                                this guide useful in navigating our app!")),
+              sidebarPanel(width = 1),
+              
+             mainPanel("Welcome to our app!
+You will find that there are several options located on the top of your screen.
+The first section includes times series data. On the top left-hand side of the screen you will be able to choose the start and end dates for the data you'd like to view. The next section asks which well you'd like to view over the time period. The next two dropdown menus ask which section of snow data you'd like to view over the same time period between fifteen minute and hour intervals. The last drop down menu asks which well you'd like to see the discharge data from (option 1 being well 3 and option 2 being well 9).
+The next tab is for a bivariate analysis of two variables of your choosing. On the left hand side of your screen you will find two drop down menus to choose the variables you'd like to analyze. At the bottom of the options you will be able to choose which well you'd like to view (once again option 1 being well 3 and option 2 being well 9). 
+The last tab contains data related to the snow's heat data. On the top left-hand side of the screen you will be able to pick your desired start and end dates. Below you will be able to choose which well you'd like to see over intervals of fifteen minutes and an hour (once again option 1 being well 3 and option 2 being well 9). 
+ 
+For a closer look at any of the data you can left-click and drag your cursor around a specific section in the data to highlight it. Double-click the highlighted section and it will be brought to the focus of the plots. To undo the zoomed in view, simply double-click anywhere on the screen and the original view will reset. I hope you have found this guide useful in navigating our app!
+")),
              #Creates App home page tab
              titlePanel("Hubbard Brook Watershed Vizualization")),
     tabPanel("Timeseries analysis",
@@ -282,7 +295,8 @@ ui <- fluidPage(theme = shinytheme("slate"),
                                     id = "plot7_brush",
                                     resetOnNew = TRUE
                                   )),
-                       plotOutput("line_snow")
+                       plotOutput("line_snow1", width = "100%", height = "215px"),
+                       plotOutput("line_snow2", width = "100%", height = "215px")
                        )
            ))
   )
@@ -427,13 +441,24 @@ server <- function(input, output, sessions) {
       theme_bw()
   })
   
-  output$line_snow <- renderPlot({
-    ggplot(data = well9_15_RTD , mapping = aes(x= TIMESTAMP , y = Depthraw)) +
+  output$line_snow1 <- renderPlot({
+    ws3_depth %>%  filter(name == "Depthraw" & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
+    ggplot(mapping = aes(x= TIMESTAMP , y = value)) +
       geom_line() +
       theme_bw() +
-      labs(title = "Time Series for Snow Pact Depth" , y = "Depth (cm)") 
+      labs(title = "Time Series for Snow Pack Depth" , y = "Depth (cm)") 
     
   })
+  
+  output$line_snow2 <- renderPlot({
+    ws9_depth %>%  filter(name == "Depthraw" & TIMESTAMP > filterdate$x[1] & TIMESTAMP < filterdate$x[2]) %>% 
+      ggplot(mapping = aes(x= TIMESTAMP , y = value)) +
+      geom_line() +
+      theme_bw() +
+      labs(title = "Time Series for Snow Pack Depth" , y = "Depth (cm)") 
+    
+  })
+  
   
   observeEvent(input$dataDL, {
     drive_deauth()
