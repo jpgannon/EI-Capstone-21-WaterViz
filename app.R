@@ -216,9 +216,9 @@ For a closer look at any of the data you can left-click and drag your cursor aro
               selectInput("var_dis", "What discharge data would you like to plot over time? Watershed 3 (1) / Watershed 9 (2)",
                           choices = unique(discharge_data$watershed), selected=unique(discharge_data$watershed)[1], multiple = TRUE),
               checkboxInput("checkbox4", "Show plot?", TRUE),
-              selectInput("precip_plot", "Which rain data would you like to plot?",
+              selectInput("precip_plot", "Which precipitation data would you like to plot?",
                           choices = unique(precip_data$watershed), selected=unique(discharge_data$watershed)[1], multiple = TRUE),
-              checkboxInput("checkbox5", "Show precip plot?", TRUE),
+              checkboxInput("checkbox5", "Show precipitation plot?", TRUE),
               actionButton("dataDL", "Download most recent data"),
             ),
             mainPanel(conditionalPanel(condition = "input.checkbox1 == 1",plotOutput("var1", width="100%", height = "215px",
@@ -446,7 +446,7 @@ server <- function(input, output, sessions) {
     ggplot(mapping = aes(x= TIMESTAMP , y = value)) +
       geom_line() +
       theme_bw() +
-      labs(title = "Time Series for Snow Pack Depth" , y = "Depth (cm)") 
+      labs(title = "Time Series for Snow Pack Depth (Watershed 3)" , y = "Depth (cm)") 
     
   })
   
@@ -455,7 +455,7 @@ server <- function(input, output, sessions) {
       ggplot(mapping = aes(x= TIMESTAMP , y = value)) +
       geom_line() +
       theme_bw() +
-      labs(title = "Time Series for Snow Pack Depth" , y = "Depth (cm)") 
+      labs(title = "Time Series for Snow Pack Depth (Watershed 9)" , y = "Depth (cm)") 
     
   })
   
