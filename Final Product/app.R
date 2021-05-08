@@ -211,7 +211,16 @@ ui <- fluidPage(theme = shinytheme("slate"),
                              
                              p("For a closer look at any of the data you can left-click and drag your cursor around a specific section in the data to highlight it. Double-click the highlighted section and it will be brought to the focus of the plots. To undo the zoomed in view, simply double-click anywhere on the screen and the original view will reset. I hope you have found this guide useful in navigating our app!"),
                              
-                             p("App created by: Zach Silvasy, Morgan Wood, Brendan Spillare, and Caleb Coleman")
+                             p("App created by: Zach Silvasy, Morgan Wood, Brendan Spillare, and Caleb Coleman"),
+                             
+                             p(tags$a(href= "https://docs.google.com/document/d/1x6CzEVKis7nVVV-l_9W5YkR8WlApJyx7CpeNnTL5k-M/edit?usp=sharing", 
+                                    "Here is a link to our final report! We hope you'll enjoy our work.")),
+                             
+                             p(tags$a(href= "https://github.com/jpgannon/EI-Capstone-21-WaterViz.git", 
+                                    "Here is a link to our GitHub repository. In this, you will find the work and tweeks we made over the semester. You can click on the app.R file in the Final Product folder to see our code.")),
+                             
+                             p(tags$a(href= "https://docs.google.com/document/d/12TpsbnZTTd0i9m96_wYxjpPUoaX5u8s2OpcuHerPlYc/edit?usp=sharing", 
+                                      "Here is a link to our Authorship info."))
                            )),
     #Creates Timeseries tab  
     tabPanel("Timeseries analysis",
